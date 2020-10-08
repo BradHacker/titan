@@ -1,0 +1,12 @@
+DELAY 100
+GUI r
+DELAY 100
+STRING https://www.youtube.com/watch?v=dQw4w9WgXcQ
+ENTER
+DELAY 100
+GUI r
+DELAY 100
+STRING notepad.exe
+ENTER
+DELAY 200
+STRING get rick rolled....
