@@ -1,6 +1,6 @@
 [submodule "c2-server"]
 	path = c2-server
-	url = git@github-BradHacker:BradHacker/ducky-c2-server.git
+	url = git@github.com:BradHacker/ducky-c2-server.git
 
 [submodule "Beacon"]
 	path = Beacon
