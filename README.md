@@ -1,4 +1,4 @@
-# RITSEC Duckies
+# Project Titan
 
 This is a research project that started because of a mentorship group with [RITSEC](https://ritsec.club) to learn about using [Rubber Duckies](https://shop.hak5.org/products/usb-rubber-ducky-deluxe). This tool can be used for anything from productivity to attacking a target.
 
