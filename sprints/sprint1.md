@@ -25,6 +25,27 @@
 
 *See Ticket #2*
 
-
 ### Interacting with the OS
 - https://golang.org/pkg/os/
+
+## Ticket #4
+
+The project is now named *Titan*... way cooler than RITSEC Duckies.
+
+## Ticket #5
+
+I wrote a basic server and client in Go that uses tcp sockets to communicate. The server just acts as an echo server for the client.
+
+**Server output**
+```
+Starting tcp server on localhost:1337
+Client 127.0.0.1:51204connected.
+2021/02/11 16:40:49 echo
+```
+
+**Client Output**
+```
+Message: echo
+2021/02/11 16:40:49 Server echo: echo
+Message: 
+```
