@@ -31,7 +31,7 @@ func main() {
 			fmt.Println("Error connecting: ", err.Error())
 			return
 		}
-		fmt.Println("Client " + c.RemoteAddr().String() + "connected.")
+		fmt.Println("Client " + c.RemoteAddr().String() + " connected.")
 
 		go handleConnection(c)
 	}
