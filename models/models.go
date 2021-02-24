@@ -31,3 +31,12 @@ type Instruction struct {
 	Action Action `json:"action"`
 	SentAt time.Time `json:"sentAt"`
 }
+
+// Beacon is the object sent back from the agent to the C2 when beaconing back
+type Beacon struct {
+	Agent Agent `json:"agent"`
+	Action Action `json:"action"`
+	SentAt time.Time `json:"sentAt"`
+	ReceivedAt time.Time `json:"receivedAt"`
+	Instruction Instruction `json:"instruction"`
+}
