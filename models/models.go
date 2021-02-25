@@ -19,6 +19,7 @@ type Action struct {
 
 // Agent represents the agent running on the target
 type Agent struct {
+	UUID []byte `json:"uuid"`
 	Hostname string `json:"hostname"`
 	IP string `json:"ip"`
 	Port string `json:"port"`
