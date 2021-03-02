@@ -41,3 +41,31 @@ type Beacon struct {
 	ReceivedAt time.Time `json:"receivedAt"`
 	Instruction Instruction `json:"instruction"`
 }
+
+func (b Beacon) String() string {
+	return "----Beacon----" +
+		"\nAgent" + 
+		"\n-----" + 
+		"\nHost\t" +
+		b.Agent.Hostname +
+		"\nIP\t" +
+		b.Agent.IP +
+		"\nPort\t" +
+		b.Agent.Port +
+		"\nInstruction" + 
+		"\n-----------" +
+		"\nAction\t" +
+		string(b.Instruction.Action.ActionType) +
+		"\nCMD\t" +
+		b.Instruction.Action.Cmd +
+		"\nOutput" +
+		"\n------\n" +
+		b.Instruction.Action.Output +
+		"\nMeta" +
+		"\n----" +
+		"\nSent\t" +
+		b.SentAt.String() +
+		"\nRecvd\t" +
+		b.ReceivedAt.String() +
+		"\n"
+}

@@ -1,4 +1,4 @@
-package zeke
+package main
 
 import (
 	"encoding/json"
@@ -8,12 +8,21 @@ import (
 )
 
 // CreateTCPListener creates a listener for TCP connections on the given listenPort on the listenHost
-func CreateTCPListener(listenHost string, listenPort string) (listener *net.Listener, err error) {
-	l, err := net.Listen("tcp", listenHost+":"+listenPort)
-	if err == nil {
-		return nil, err;
-	}
-	return &l, nil
+func CreateTCPListener(listenHost string, listenPort string) (listener net.Listener, err error) {
+	listener, err = net.Listen("tcp", listenHost+":"+listenPort)
+	return
+}
+
+// CloseListener closes a net listener
+func CloseListener(listener net.Listener) (err error) {
+	err = listener.Close()
+	return
+}
+
+// AcceptConnection accepts an incoming connection from a Beacon
+func AcceptConnection(listener net.Listener) (conn net.Conn, err error) {
+	conn, err = listener.Accept()
+	return
 }
 
 // EncodeInstruction encodes an instruction as a JSON object in the form of a byte array
