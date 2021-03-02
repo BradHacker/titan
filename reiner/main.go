@@ -10,8 +10,6 @@ import (
 )
 
 func main() {
-	testBeacon := generateTestBeacon()
-
 	connection, err := CreateTCPConnection("localhost", "1337")
 	if err != nil {
 		log.Fatal(fmt.Errorf("Couldn't establish connection: %v", err))
@@ -19,15 +17,21 @@ func main() {
 
 	defer CloseConnection(connection)
 
+	instruction, err := WaitForInstruction(connection)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Error while waiting for instruction: %v", err))
+	}
+
+	testBeacon := generateTestBeacon(instruction)
+	time.Sleep(1000)
+
 	err = SendBeacon(testBeacon, connection)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Couldn't send beacon: %v", err))
 	}
 }
 
-func generateTestBeacon() (beacon models.Beacon) {
-	var testAction models.Action
-	var testInstruction models.Instruction
+func generateTestBeacon(instruction models.Instruction) (beacon models.Beacon) {
 	var testAgent models.Agent
 
 	testAgent.Hostname = "Evil-Laptop1"
@@ -38,18 +42,13 @@ func generateTestBeacon() (beacon models.Beacon) {
 	uuidHasher.Write([]byte("yeet"))
 	testAgent.UUID = uuidHasher.Sum(nil)
 
-	testAction.ActionType = "EXEC"
-	testAction.Cmd = "whoami"
-	testAction.Output = "bob"
+	instruction.Action.Output = "bob"
 
-	testInstruction.Action = testAction
-	testInstruction.Agent = testAgent
-	testInstruction.SentAt = time.Now()
+	instruction.Agent = testAgent
 	
-	beacon.Action = testAction
+	beacon.Action = instruction.Action
 	beacon.Agent = testAgent
-	beacon.Instruction = testInstruction
+	beacon.Instruction = instruction
 	beacon.ReceivedAt = time.Now()
-	beacon.SentAt = time.Now()
 	return
 }
