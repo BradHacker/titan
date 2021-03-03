@@ -52,7 +52,8 @@ func generateTestInstruction() (instruction models.Instruction) {
 	var testAction models.Action
 
 	testAction.ActionType = "EXEC"
-	testAction.Cmd = "whoami"
+	testAction.Cmd = "echo"
+	testAction.Args = []string{"-n", "RCE is working"}
 
 	instruction.Action = testAction
 	return

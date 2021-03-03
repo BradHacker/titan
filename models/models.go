@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // ActionType is the kind of action to be executed
 type ActionType string
@@ -57,8 +60,10 @@ func (b Beacon) String() string {
 		"\n-----------" +
 		"\nAction\t" +
 		string(b.Instruction.Action.ActionType) +
-		"\nCMD\t" +
+		"\nCmd\t" +
 		b.Instruction.Action.Cmd +
+		"\nArgs\t" +
+		strings.Join(b.Instruction.Action.Args, " ") +
 		"\nOutput" +
 		"\n------\n" +
 		b.Instruction.Action.Output +
