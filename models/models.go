@@ -14,6 +14,7 @@ const (
 type Action struct {
 	ActionType ActionType `json:"actionType"`
 	Cmd string `json:"cmd"`
+	Args []string `json:"args"`
 	Output string `json:"output"`
 }
 
