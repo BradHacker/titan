@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -56,6 +57,8 @@ func (b Beacon) String() string {
 		b.Agent.IP +
 		"\nPort\t" +
 		b.Agent.Port +
+		"\nPID\t" +
+		fmt.Sprintf("%d", b.Agent.PID) +
 		"\nInstruction" + 
 		"\n-----------" +
 		"\nAction\t" +

