@@ -15,5 +15,8 @@ type Agent func(*sql.Selector)
 // Beacon is the predicate function for beacon builders.
 type Beacon func(*sql.Selector)
 
+// Heartbeat is the predicate function for heartbeat builders.
+type Heartbeat func(*sql.Selector)
+
 // Instruction is the predicate function for instruction builders.
 type Instruction func(*sql.Selector)

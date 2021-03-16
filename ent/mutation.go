@@ -11,6 +11,7 @@ import (
 	"github.com/BradHacker/titan/ent/action"
 	"github.com/BradHacker/titan/ent/agent"
 	"github.com/BradHacker/titan/ent/beacon"
+	"github.com/BradHacker/titan/ent/heartbeat"
 	"github.com/BradHacker/titan/ent/instruction"
 	"github.com/BradHacker/titan/ent/predicate"
 
@@ -29,6 +30,7 @@ const (
 	TypeAction      = "Action"
 	TypeAgent       = "Agent"
 	TypeBeacon      = "Beacon"
+	TypeHeartbeat   = "Heartbeat"
 	TypeInstruction = "Instruction"
 )
 
@@ -585,8 +587,12 @@ type AgentMutation struct {
 	pid                *int
 	addpid             *int
 	clearedFields      map[string]struct{}
-	instruction        *int
+	instruction        map[int]struct{}
+	removedinstruction map[int]struct{}
 	clearedinstruction bool
+	heartbeat          map[int]struct{}
+	removedheartbeat   map[int]struct{}
+	clearedheartbeat   bool
 	done               bool
 	oldValue           func(context.Context) (*Agent, error)
 	predicates         []predicate.Agent
@@ -871,9 +877,14 @@ func (m *AgentMutation) ResetPid() {
 	m.addpid = nil
 }
 
-// SetInstructionID sets the "instruction" edge to the Instruction entity by id.
-func (m *AgentMutation) SetInstructionID(id int) {
-	m.instruction = &id
+// AddInstructionIDs adds the "instruction" edge to the Instruction entity by ids.
+func (m *AgentMutation) AddInstructionIDs(ids ...int) {
+	if m.instruction == nil {
+		m.instruction = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.instruction[ids[i]] = struct{}{}
+	}
 }
 
 // ClearInstruction clears the "instruction" edge to the Instruction entity.
@@ -886,20 +897,28 @@ func (m *AgentMutation) InstructionCleared() bool {
 	return m.clearedinstruction
 }
 
-// InstructionID returns the "instruction" edge ID in the mutation.
-func (m *AgentMutation) InstructionID() (id int, exists bool) {
-	if m.instruction != nil {
-		return *m.instruction, true
+// RemoveInstructionIDs removes the "instruction" edge to the Instruction entity by IDs.
+func (m *AgentMutation) RemoveInstructionIDs(ids ...int) {
+	if m.removedinstruction == nil {
+		m.removedinstruction = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.removedinstruction[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedInstruction returns the removed IDs of the "instruction" edge to the Instruction entity.
+func (m *AgentMutation) RemovedInstructionIDs() (ids []int) {
+	for id := range m.removedinstruction {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // InstructionIDs returns the "instruction" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// InstructionID instead. It exists only for internal usage by the builders.
 func (m *AgentMutation) InstructionIDs() (ids []int) {
-	if id := m.instruction; id != nil {
-		ids = append(ids, *id)
+	for id := range m.instruction {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -908,6 +927,60 @@ func (m *AgentMutation) InstructionIDs() (ids []int) {
 func (m *AgentMutation) ResetInstruction() {
 	m.instruction = nil
 	m.clearedinstruction = false
+	m.removedinstruction = nil
+}
+
+// AddHeartbeatIDs adds the "heartbeat" edge to the Heartbeat entity by ids.
+func (m *AgentMutation) AddHeartbeatIDs(ids ...int) {
+	if m.heartbeat == nil {
+		m.heartbeat = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.heartbeat[ids[i]] = struct{}{}
+	}
+}
+
+// ClearHeartbeat clears the "heartbeat" edge to the Heartbeat entity.
+func (m *AgentMutation) ClearHeartbeat() {
+	m.clearedheartbeat = true
+}
+
+// HeartbeatCleared returns if the "heartbeat" edge to the Heartbeat entity was cleared.
+func (m *AgentMutation) HeartbeatCleared() bool {
+	return m.clearedheartbeat
+}
+
+// RemoveHeartbeatIDs removes the "heartbeat" edge to the Heartbeat entity by IDs.
+func (m *AgentMutation) RemoveHeartbeatIDs(ids ...int) {
+	if m.removedheartbeat == nil {
+		m.removedheartbeat = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.removedheartbeat[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedHeartbeat returns the removed IDs of the "heartbeat" edge to the Heartbeat entity.
+func (m *AgentMutation) RemovedHeartbeatIDs() (ids []int) {
+	for id := range m.removedheartbeat {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// HeartbeatIDs returns the "heartbeat" edge IDs in the mutation.
+func (m *AgentMutation) HeartbeatIDs() (ids []int) {
+	for id := range m.heartbeat {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetHeartbeat resets all changes to the "heartbeat" edge.
+func (m *AgentMutation) ResetHeartbeat() {
+	m.heartbeat = nil
+	m.clearedheartbeat = false
+	m.removedheartbeat = nil
 }
 
 // Op returns the operation name.
@@ -1106,9 +1179,12 @@ func (m *AgentMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AgentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.instruction != nil {
 		edges = append(edges, agent.EdgeInstruction)
+	}
+	if m.heartbeat != nil {
+		edges = append(edges, agent.EdgeHeartbeat)
 	}
 	return edges
 }
@@ -1118,16 +1194,30 @@ func (m *AgentMutation) AddedEdges() []string {
 func (m *AgentMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case agent.EdgeInstruction:
-		if id := m.instruction; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.instruction))
+		for id := range m.instruction {
+			ids = append(ids, id)
 		}
+		return ids
+	case agent.EdgeHeartbeat:
+		ids := make([]ent.Value, 0, len(m.heartbeat))
+		for id := range m.heartbeat {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AgentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
+	if m.removedinstruction != nil {
+		edges = append(edges, agent.EdgeInstruction)
+	}
+	if m.removedheartbeat != nil {
+		edges = append(edges, agent.EdgeHeartbeat)
+	}
 	return edges
 }
 
@@ -1135,15 +1225,30 @@ func (m *AgentMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *AgentMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case agent.EdgeInstruction:
+		ids := make([]ent.Value, 0, len(m.removedinstruction))
+		for id := range m.removedinstruction {
+			ids = append(ids, id)
+		}
+		return ids
+	case agent.EdgeHeartbeat:
+		ids := make([]ent.Value, 0, len(m.removedheartbeat))
+		for id := range m.removedheartbeat {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AgentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedinstruction {
 		edges = append(edges, agent.EdgeInstruction)
+	}
+	if m.clearedheartbeat {
+		edges = append(edges, agent.EdgeHeartbeat)
 	}
 	return edges
 }
@@ -1154,6 +1259,8 @@ func (m *AgentMutation) EdgeCleared(name string) bool {
 	switch name {
 	case agent.EdgeInstruction:
 		return m.clearedinstruction
+	case agent.EdgeHeartbeat:
+		return m.clearedheartbeat
 	}
 	return false
 }
@@ -1162,9 +1269,6 @@ func (m *AgentMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *AgentMutation) ClearEdge(name string) error {
 	switch name {
-	case agent.EdgeInstruction:
-		m.ClearInstruction()
-		return nil
 	}
 	return fmt.Errorf("unknown Agent unique edge %s", name)
 }
@@ -1175,6 +1279,9 @@ func (m *AgentMutation) ResetEdge(name string) error {
 	switch name {
 	case agent.EdgeInstruction:
 		m.ResetInstruction()
+		return nil
+	case agent.EdgeHeartbeat:
+		m.ResetHeartbeat()
 		return nil
 	}
 	return fmt.Errorf("unknown Agent edge %s", name)
@@ -1610,6 +1717,416 @@ func (m *BeaconMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Beacon edge %s", name)
+}
+
+// HeartbeatMutation represents an operation that mutates the Heartbeat nodes in the graph.
+type HeartbeatMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	sentAt        *time.Time
+	receivedAt    *time.Time
+	clearedFields map[string]struct{}
+	agent         *int
+	clearedagent  bool
+	done          bool
+	oldValue      func(context.Context) (*Heartbeat, error)
+	predicates    []predicate.Heartbeat
+}
+
+var _ ent.Mutation = (*HeartbeatMutation)(nil)
+
+// heartbeatOption allows management of the mutation configuration using functional options.
+type heartbeatOption func(*HeartbeatMutation)
+
+// newHeartbeatMutation creates new mutation for the Heartbeat entity.
+func newHeartbeatMutation(c config, op Op, opts ...heartbeatOption) *HeartbeatMutation {
+	m := &HeartbeatMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeHeartbeat,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withHeartbeatID sets the ID field of the mutation.
+func withHeartbeatID(id int) heartbeatOption {
+	return func(m *HeartbeatMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Heartbeat
+		)
+		m.oldValue = func(ctx context.Context) (*Heartbeat, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Heartbeat.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withHeartbeat sets the old Heartbeat of the mutation.
+func withHeartbeat(node *Heartbeat) heartbeatOption {
+	return func(m *HeartbeatMutation) {
+		m.oldValue = func(context.Context) (*Heartbeat, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m HeartbeatMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m HeartbeatMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID
+// is only available if it was provided to the builder.
+func (m *HeartbeatMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetSentAt sets the "sentAt" field.
+func (m *HeartbeatMutation) SetSentAt(t time.Time) {
+	m.sentAt = &t
+}
+
+// SentAt returns the value of the "sentAt" field in the mutation.
+func (m *HeartbeatMutation) SentAt() (r time.Time, exists bool) {
+	v := m.sentAt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSentAt returns the old "sentAt" field's value of the Heartbeat entity.
+// If the Heartbeat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HeartbeatMutation) OldSentAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldSentAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldSentAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSentAt: %w", err)
+	}
+	return oldValue.SentAt, nil
+}
+
+// ResetSentAt resets all changes to the "sentAt" field.
+func (m *HeartbeatMutation) ResetSentAt() {
+	m.sentAt = nil
+}
+
+// SetReceivedAt sets the "receivedAt" field.
+func (m *HeartbeatMutation) SetReceivedAt(t time.Time) {
+	m.receivedAt = &t
+}
+
+// ReceivedAt returns the value of the "receivedAt" field in the mutation.
+func (m *HeartbeatMutation) ReceivedAt() (r time.Time, exists bool) {
+	v := m.receivedAt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReceivedAt returns the old "receivedAt" field's value of the Heartbeat entity.
+// If the Heartbeat object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *HeartbeatMutation) OldReceivedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldReceivedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldReceivedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReceivedAt: %w", err)
+	}
+	return oldValue.ReceivedAt, nil
+}
+
+// ResetReceivedAt resets all changes to the "receivedAt" field.
+func (m *HeartbeatMutation) ResetReceivedAt() {
+	m.receivedAt = nil
+}
+
+// SetAgentID sets the "agent" edge to the Agent entity by id.
+func (m *HeartbeatMutation) SetAgentID(id int) {
+	m.agent = &id
+}
+
+// ClearAgent clears the "agent" edge to the Agent entity.
+func (m *HeartbeatMutation) ClearAgent() {
+	m.clearedagent = true
+}
+
+// AgentCleared returns if the "agent" edge to the Agent entity was cleared.
+func (m *HeartbeatMutation) AgentCleared() bool {
+	return m.clearedagent
+}
+
+// AgentID returns the "agent" edge ID in the mutation.
+func (m *HeartbeatMutation) AgentID() (id int, exists bool) {
+	if m.agent != nil {
+		return *m.agent, true
+	}
+	return
+}
+
+// AgentIDs returns the "agent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AgentID instead. It exists only for internal usage by the builders.
+func (m *HeartbeatMutation) AgentIDs() (ids []int) {
+	if id := m.agent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAgent resets all changes to the "agent" edge.
+func (m *HeartbeatMutation) ResetAgent() {
+	m.agent = nil
+	m.clearedagent = false
+}
+
+// Op returns the operation name.
+func (m *HeartbeatMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (Heartbeat).
+func (m *HeartbeatMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *HeartbeatMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.sentAt != nil {
+		fields = append(fields, heartbeat.FieldSentAt)
+	}
+	if m.receivedAt != nil {
+		fields = append(fields, heartbeat.FieldReceivedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *HeartbeatMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case heartbeat.FieldSentAt:
+		return m.SentAt()
+	case heartbeat.FieldReceivedAt:
+		return m.ReceivedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *HeartbeatMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case heartbeat.FieldSentAt:
+		return m.OldSentAt(ctx)
+	case heartbeat.FieldReceivedAt:
+		return m.OldReceivedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Heartbeat field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HeartbeatMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case heartbeat.FieldSentAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSentAt(v)
+		return nil
+	case heartbeat.FieldReceivedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReceivedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Heartbeat field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *HeartbeatMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *HeartbeatMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *HeartbeatMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Heartbeat numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *HeartbeatMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *HeartbeatMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *HeartbeatMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Heartbeat nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *HeartbeatMutation) ResetField(name string) error {
+	switch name {
+	case heartbeat.FieldSentAt:
+		m.ResetSentAt()
+		return nil
+	case heartbeat.FieldReceivedAt:
+		m.ResetReceivedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Heartbeat field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *HeartbeatMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.agent != nil {
+		edges = append(edges, heartbeat.EdgeAgent)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *HeartbeatMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case heartbeat.EdgeAgent:
+		if id := m.agent; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *HeartbeatMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *HeartbeatMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *HeartbeatMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedagent {
+		edges = append(edges, heartbeat.EdgeAgent)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *HeartbeatMutation) EdgeCleared(name string) bool {
+	switch name {
+	case heartbeat.EdgeAgent:
+		return m.clearedagent
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *HeartbeatMutation) ClearEdge(name string) error {
+	switch name {
+	case heartbeat.EdgeAgent:
+		m.ClearAgent()
+		return nil
+	}
+	return fmt.Errorf("unknown Heartbeat unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *HeartbeatMutation) ResetEdge(name string) error {
+	switch name {
+	case heartbeat.EdgeAgent:
+		m.ResetAgent()
+		return nil
+	}
+	return fmt.Errorf("unknown Heartbeat edge %s", name)
 }
 
 // InstructionMutation represents an operation that mutates the Instruction nodes in the graph.

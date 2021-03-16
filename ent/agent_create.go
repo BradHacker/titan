@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/BradHacker/titan/ent/agent"
+	"github.com/BradHacker/titan/ent/heartbeat"
 	"github.com/BradHacker/titan/ent/instruction"
 )
 
@@ -50,23 +51,34 @@ func (ac *AgentCreate) SetPid(i int) *AgentCreate {
 	return ac
 }
 
-// SetInstructionID sets the "instruction" edge to the Instruction entity by ID.
-func (ac *AgentCreate) SetInstructionID(id int) *AgentCreate {
-	ac.mutation.SetInstructionID(id)
+// AddInstructionIDs adds the "instruction" edge to the Instruction entity by IDs.
+func (ac *AgentCreate) AddInstructionIDs(ids ...int) *AgentCreate {
+	ac.mutation.AddInstructionIDs(ids...)
 	return ac
 }
 
-// SetNillableInstructionID sets the "instruction" edge to the Instruction entity by ID if the given value is not nil.
-func (ac *AgentCreate) SetNillableInstructionID(id *int) *AgentCreate {
-	if id != nil {
-		ac = ac.SetInstructionID(*id)
+// AddInstruction adds the "instruction" edges to the Instruction entity.
+func (ac *AgentCreate) AddInstruction(i ...*Instruction) *AgentCreate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
 	}
+	return ac.AddInstructionIDs(ids...)
+}
+
+// AddHeartbeatIDs adds the "heartbeat" edge to the Heartbeat entity by IDs.
+func (ac *AgentCreate) AddHeartbeatIDs(ids ...int) *AgentCreate {
+	ac.mutation.AddHeartbeatIDs(ids...)
 	return ac
 }
 
-// SetInstruction sets the "instruction" edge to the Instruction entity.
-func (ac *AgentCreate) SetInstruction(i *Instruction) *AgentCreate {
-	return ac.SetInstructionID(i.ID)
+// AddHeartbeat adds the "heartbeat" edges to the Heartbeat entity.
+func (ac *AgentCreate) AddHeartbeat(h ...*Heartbeat) *AgentCreate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return ac.AddHeartbeatIDs(ids...)
 }
 
 // Mutation returns the AgentMutation object of the builder.
@@ -204,7 +216,7 @@ func (ac *AgentCreate) createSpec() (*Agent, *sqlgraph.CreateSpec) {
 	}
 	if nodes := ac.mutation.InstructionIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: true,
 			Table:   agent.InstructionTable,
 			Columns: []string{agent.InstructionColumn},
@@ -219,7 +231,25 @@ func (ac *AgentCreate) createSpec() (*Agent, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.instruction_agent = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ac.mutation.HeartbeatIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

@@ -25,6 +25,7 @@ func (Agent) Fields() []ent.Field {
 // Edges of the Agent.
 func (Agent) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.From("instruction", Instruction.Type).Ref("agent").Unique(),
+		edge.From("instruction", Instruction.Type).Ref("agent"),
+		edge.From("heartbeat", Heartbeat.Type).Ref("agent"),
 	}
 }

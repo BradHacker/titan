@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net"
 	"time"
 
+	"github.com/BradHacker/titan/ent"
 	"github.com/BradHacker/titan/models"
 )
 
@@ -35,13 +37,14 @@ func AcceptConnection(listener net.Listener) (conn net.Conn, err error) {
 
 
 // SendInstruction sends an instruction struct via TCP over a connection
-func SendInstruction(instruction models.Instruction, connection net.Conn) (err error) {
+func SendInstruction(ctx context.Context, instruction models.Instruction, dbInstruction *ent.Instruction, connection net.Conn) (err error) {
 	instruction.SentAt = time.Now()
 	dataBytes, jsonErr := models.EncodeInstruction(instruction)
 	if jsonErr != nil {
 		return jsonErr
 	}
 	_, err = connection.Write(append(dataBytes, []byte{0xff}...))
+	dbInstruction.Update().SetSentAt(instruction.SentAt).Save(ctx)
 	return
 }
 

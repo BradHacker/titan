@@ -25,18 +25,18 @@ func main() {
 		log.Fatal(fmt.Errorf("error while generating heartbeat: %v", err))
 	}
 
-	// instruction, err := WaitForInstruction(connection)
-	// if err != nil {
-	// 	log.Fatal(fmt.Errorf("error while waiting for instruction: %v", err))
-	// }
+	instruction, err := WaitForInstruction(connection)
+	if err != nil {
+		log.Fatal(fmt.Errorf("error while waiting for instruction: %v", err))
+	}
 
-	// testBeacon := generateTestBeacon(instruction, connection)
-	// time.Sleep(1000)
+	testBeacon := generateTestBeacon(instruction, connection)
+	time.Sleep(1000)
 
-	// err = SendBeacon(testBeacon, connection)
-	// if err != nil {
-	// 	log.Fatal(fmt.Errorf("couldn't send beacon: %v", err))
-	// }
+	err = SendBeacon(testBeacon, connection)
+	if err != nil {
+		log.Fatal(fmt.Errorf("couldn't send beacon: %v", err))
+	}
 }
 
 func generateTestBeacon(instruction models.Instruction, connection net.Conn) (beacon models.Beacon) {

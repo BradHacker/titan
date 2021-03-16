@@ -167,7 +167,7 @@ func (ic *InstructionCreate) createSpec() (*Instruction, *sqlgraph.CreateSpec) {
 	}
 	if nodes := ic.mutation.AgentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
 			Table:   instruction.AgentTable,
 			Columns: []string{instruction.AgentColumn},
@@ -182,6 +182,7 @@ func (ic *InstructionCreate) createSpec() (*Instruction, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.instruction_agent = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ic.mutation.ActionIDs(); len(nodes) > 0 {

@@ -1,10 +1,15 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/BradHacker/titan/ent"
+	"github.com/BradHacker/titan/ent/action"
+	"github.com/BradHacker/titan/ent/agent"
 )
 
 // ActionType is the kind of action to be executed
@@ -34,6 +39,7 @@ type Agent struct {
 
 type Heartbeat struct {
 	SentAt time.Time `json:"sentAt"`
+	ReceivedAt time.Time `json:"receivedAt"`
 	Agent Agent `json:"agent"`
 }
 
@@ -116,5 +122,72 @@ func EncodeHeartbeat(heartbeat Heartbeat) (heartbeatBytes []byte, err error) {
 // DecodeHeartbeat decodes instructions sent from the C2
 func DecodeHeartbeat(data []byte) (heartbeat *Heartbeat, err error) {
 	err = json.Unmarshal(data, &heartbeat)
+	return
+}
+
+func CreateAgent(ctx context.Context, client *ent.Client, agent Agent) (dbAgent *ent.Agent, err error) {
+	dbAgent, err = client.Agent.Create().
+		SetUUID(agent.UUID).
+		SetHostname(agent.Hostname).
+		SetIP(agent.IP).
+		SetPort(agent.Port).
+		SetPid(agent.PID).
+		Save(ctx)
+	return
+}
+
+func FindOrCreateAgent(ctx context.Context, client *ent.Client, a Agent) (dbAgent *ent.Agent, err error) {
+	dbAgent, err = client.Agent.Query().Where(agent.And(agent.UUIDEQ(a.UUID), agent.HostnameEQ(a.Hostname))).Only(ctx)
+	if err != nil {
+		fmt.Printf("No agent found for %s (%s), creating one...\n", a.Hostname, a.UUID);
+		dbAgent, err = CreateAgent(ctx, client, a)
+	}
+	if err != nil {
+		fmt.Println(fmt.Errorf("couldn't create agent in database: %v", err))
+	}
+	return
+}
+
+
+func CreateHeartbeat(ctx context.Context, client *ent.Client, heartbeat Heartbeat) (dbHeartbeat *ent.Heartbeat, err error) {
+	dbAgent, err := FindOrCreateAgent(ctx, client, heartbeat.Agent)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error finding/creating agent: %v", err))
+		return
+	}
+	dbHeartbeat, err = client.Heartbeat.Create().
+		SetSentAt(heartbeat.SentAt).
+		SetReceivedAt(heartbeat.ReceivedAt).
+		SetAgent(dbAgent).
+		Save(ctx)
+	return
+}
+
+func CreateAction(ctx context.Context, client *ent.Client, a Action) (dbAction *ent.Action, err error) {
+	dbAction, err = client.Action.Create().
+		SetActionType(action.ActionType(a.ActionType)).
+		SetCmd(a.Cmd).
+		SetArgs(a.Args).
+		SetOutput(a.Output).
+		Save(ctx)
+	return
+}
+
+func CreateInstruction(ctx context.Context, client *ent.Client, instruction Instruction) (dbInstruction *ent.Instruction, err error) {
+	dbAction, err := CreateAction(ctx, client, instruction.Action)
+	if err != nil {
+		fmt.Println(fmt.Errorf("couldn't create action in db: %v", err))
+		return
+	}
+	dbAgent, err := FindOrCreateAgent(ctx, client, instruction.Agent)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error finding/creating agent: %v", err))
+		return
+	}
+	dbInstruction, err = client.Instruction.Create().
+		SetAction(dbAction).
+		SetAgent(dbAgent).
+		SetSentAt(time.Now()).
+		Save(ctx)
 	return
 }

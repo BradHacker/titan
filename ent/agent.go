@@ -8,7 +8,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/BradHacker/titan/ent/agent"
-	"github.com/BradHacker/titan/ent/instruction"
 )
 
 // Agent is the model entity for the Agent schema.
@@ -28,31 +27,36 @@ type Agent struct {
 	Pid int `json:"pid,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the AgentQuery when eager-loading is set.
-	Edges             AgentEdges `json:"edges"`
-	instruction_agent *int
+	Edges AgentEdges `json:"edges"`
 }
 
 // AgentEdges holds the relations/edges for other nodes in the graph.
 type AgentEdges struct {
 	// Instruction holds the value of the instruction edge.
-	Instruction *Instruction `json:"instruction,omitempty"`
+	Instruction []*Instruction `json:"instruction,omitempty"`
+	// Heartbeat holds the value of the heartbeat edge.
+	Heartbeat []*Heartbeat `json:"heartbeat,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // InstructionOrErr returns the Instruction value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e AgentEdges) InstructionOrErr() (*Instruction, error) {
+// was not loaded in eager-loading.
+func (e AgentEdges) InstructionOrErr() ([]*Instruction, error) {
 	if e.loadedTypes[0] {
-		if e.Instruction == nil {
-			// The edge instruction was loaded in eager-loading,
-			// but was not found.
-			return nil, &NotFoundError{label: instruction.Label}
-		}
 		return e.Instruction, nil
 	}
 	return nil, &NotLoadedError{edge: "instruction"}
+}
+
+// HeartbeatOrErr returns the Heartbeat value or an error if the edge
+// was not loaded in eager-loading.
+func (e AgentEdges) HeartbeatOrErr() ([]*Heartbeat, error) {
+	if e.loadedTypes[1] {
+		return e.Heartbeat, nil
+	}
+	return nil, &NotLoadedError{edge: "heartbeat"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -64,8 +68,6 @@ func (*Agent) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = &sql.NullInt64{}
 		case agent.FieldUUID, agent.FieldHostname, agent.FieldIP, agent.FieldPort:
 			values[i] = &sql.NullString{}
-		case agent.ForeignKeys[0]: // instruction_agent
-			values[i] = &sql.NullInt64{}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Agent", columns[i])
 		}
@@ -117,13 +119,6 @@ func (a *Agent) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				a.Pid = int(value.Int64)
 			}
-		case agent.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field instruction_agent", value)
-			} else if value.Valid {
-				a.instruction_agent = new(int)
-				*a.instruction_agent = int(value.Int64)
-			}
 		}
 	}
 	return nil
@@ -132,6 +127,11 @@ func (a *Agent) assignValues(columns []string, values []interface{}) error {
 // QueryInstruction queries the "instruction" edge of the Agent entity.
 func (a *Agent) QueryInstruction() *InstructionQuery {
 	return (&AgentClient{config: a.config}).QueryInstruction(a)
+}
+
+// QueryHeartbeat queries the "heartbeat" edge of the Agent entity.
+func (a *Agent) QueryHeartbeat() *HeartbeatQuery {
+	return (&AgentClient{config: a.config}).QueryHeartbeat(a)
 }
 
 // Update returns a builder for updating this Agent.

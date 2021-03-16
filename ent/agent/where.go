@@ -652,7 +652,7 @@ func HasInstruction() predicate.Agent {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(InstructionTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, InstructionTable, InstructionColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, InstructionTable, InstructionColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -664,7 +664,35 @@ func HasInstructionWith(preds ...predicate.Instruction) predicate.Agent {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(InstructionInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, InstructionTable, InstructionColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, InstructionTable, InstructionColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasHeartbeat applies the HasEdge predicate on the "heartbeat" edge.
+func HasHeartbeat() predicate.Agent {
+	return predicate.Agent(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(HeartbeatTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, HeartbeatTable, HeartbeatColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasHeartbeatWith applies the HasEdge predicate on the "heartbeat" edge with a given conditions (other predicates).
+func HasHeartbeatWith(preds ...predicate.Heartbeat) predicate.Agent {
+	return predicate.Agent(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(HeartbeatInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, HeartbeatTable, HeartbeatColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

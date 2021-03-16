@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -12,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/BradHacker/titan/ent/agent"
+	"github.com/BradHacker/titan/ent/heartbeat"
 	"github.com/BradHacker/titan/ent/instruction"
 	"github.com/BradHacker/titan/ent/predicate"
 )
@@ -26,7 +28,7 @@ type AgentQuery struct {
 	predicates []predicate.Agent
 	// eager-loading edges.
 	withInstruction *InstructionQuery
-	withFKs         bool
+	withHeartbeat   *HeartbeatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -70,7 +72,29 @@ func (aq *AgentQuery) QueryInstruction() *InstructionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(agent.Table, agent.FieldID, selector),
 			sqlgraph.To(instruction.Table, instruction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, agent.InstructionTable, agent.InstructionColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, agent.InstructionTable, agent.InstructionColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryHeartbeat chains the current query on the "heartbeat" edge.
+func (aq *AgentQuery) QueryHeartbeat() *HeartbeatQuery {
+	query := &HeartbeatQuery{config: aq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := aq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := aq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agent.Table, agent.FieldID, selector),
+			sqlgraph.To(heartbeat.Table, heartbeat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, agent.HeartbeatTable, agent.HeartbeatColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(aq.driver.Dialect(), step)
 		return fromU, nil
@@ -260,6 +284,7 @@ func (aq *AgentQuery) Clone() *AgentQuery {
 		order:           append([]OrderFunc{}, aq.order...),
 		predicates:      append([]predicate.Agent{}, aq.predicates...),
 		withInstruction: aq.withInstruction.Clone(),
+		withHeartbeat:   aq.withHeartbeat.Clone(),
 		// clone intermediate query.
 		sql:  aq.sql.Clone(),
 		path: aq.path,
@@ -274,6 +299,17 @@ func (aq *AgentQuery) WithInstruction(opts ...func(*InstructionQuery)) *AgentQue
 		opt(query)
 	}
 	aq.withInstruction = query
+	return aq
+}
+
+// WithHeartbeat tells the query-builder to eager-load the nodes that are connected to
+// the "heartbeat" edge. The optional arguments are used to configure the query builder of the edge.
+func (aq *AgentQuery) WithHeartbeat(opts ...func(*HeartbeatQuery)) *AgentQuery {
+	query := &HeartbeatQuery{config: aq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	aq.withHeartbeat = query
 	return aq
 }
 
@@ -341,18 +377,12 @@ func (aq *AgentQuery) prepareQuery(ctx context.Context) error {
 func (aq *AgentQuery) sqlAll(ctx context.Context) ([]*Agent, error) {
 	var (
 		nodes       = []*Agent{}
-		withFKs     = aq.withFKs
 		_spec       = aq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			aq.withInstruction != nil,
+			aq.withHeartbeat != nil,
 		}
 	)
-	if aq.withInstruction != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, agent.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Agent{config: aq.config}
 		nodes = append(nodes, node)
@@ -374,28 +404,60 @@ func (aq *AgentQuery) sqlAll(ctx context.Context) ([]*Agent, error) {
 	}
 
 	if query := aq.withInstruction; query != nil {
-		ids := make([]int, 0, len(nodes))
-		nodeids := make(map[int][]*Agent)
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Agent)
 		for i := range nodes {
-			fk := nodes[i].instruction_agent
-			if fk != nil {
-				ids = append(ids, *fk)
-				nodeids[*fk] = append(nodeids[*fk], nodes[i])
-			}
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Instruction = []*Instruction{}
 		}
-		query.Where(instruction.IDIn(ids...))
+		query.withFKs = true
+		query.Where(predicate.Instruction(func(s *sql.Selector) {
+			s.Where(sql.InValues(agent.InstructionColumn, fks...))
+		}))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
+			fk := n.instruction_agent
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "instruction_agent" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "instruction_agent" returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "instruction_agent" returned %v for node %v`, *fk, n.ID)
 			}
-			for i := range nodes {
-				nodes[i].Edges.Instruction = n
+			node.Edges.Instruction = append(node.Edges.Instruction, n)
+		}
+	}
+
+	if query := aq.withHeartbeat; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[int]*Agent)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Heartbeat = []*Heartbeat{}
+		}
+		query.withFKs = true
+		query.Where(predicate.Heartbeat(func(s *sql.Selector) {
+			s.Where(sql.InValues(agent.HeartbeatColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.heartbeat_agent
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "heartbeat_agent" is nil for node %v`, n.ID)
 			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "heartbeat_agent" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Heartbeat = append(node.Edges.Heartbeat, n)
 		}
 	}
 

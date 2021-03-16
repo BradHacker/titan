@@ -48,6 +48,19 @@ func (f BeaconFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return f(ctx, mv)
 }
 
+// The HeartbeatFunc type is an adapter to allow the use of ordinary
+// function as Heartbeat mutator.
+type HeartbeatFunc func(context.Context, *ent.HeartbeatMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f HeartbeatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.HeartbeatMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.HeartbeatMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The InstructionFunc type is an adapter to allow the use of ordinary
 // function as Instruction mutator.
 type InstructionFunc func(context.Context, *ent.InstructionMutation) (ent.Value, error)

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/BradHacker/titan/ent/agent"
+	"github.com/BradHacker/titan/ent/heartbeat"
 	"github.com/BradHacker/titan/ent/instruction"
 	"github.com/BradHacker/titan/ent/predicate"
 )
@@ -64,23 +65,34 @@ func (au *AgentUpdate) AddPid(i int) *AgentUpdate {
 	return au
 }
 
-// SetInstructionID sets the "instruction" edge to the Instruction entity by ID.
-func (au *AgentUpdate) SetInstructionID(id int) *AgentUpdate {
-	au.mutation.SetInstructionID(id)
+// AddInstructionIDs adds the "instruction" edge to the Instruction entity by IDs.
+func (au *AgentUpdate) AddInstructionIDs(ids ...int) *AgentUpdate {
+	au.mutation.AddInstructionIDs(ids...)
 	return au
 }
 
-// SetNillableInstructionID sets the "instruction" edge to the Instruction entity by ID if the given value is not nil.
-func (au *AgentUpdate) SetNillableInstructionID(id *int) *AgentUpdate {
-	if id != nil {
-		au = au.SetInstructionID(*id)
+// AddInstruction adds the "instruction" edges to the Instruction entity.
+func (au *AgentUpdate) AddInstruction(i ...*Instruction) *AgentUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
 	}
+	return au.AddInstructionIDs(ids...)
+}
+
+// AddHeartbeatIDs adds the "heartbeat" edge to the Heartbeat entity by IDs.
+func (au *AgentUpdate) AddHeartbeatIDs(ids ...int) *AgentUpdate {
+	au.mutation.AddHeartbeatIDs(ids...)
 	return au
 }
 
-// SetInstruction sets the "instruction" edge to the Instruction entity.
-func (au *AgentUpdate) SetInstruction(i *Instruction) *AgentUpdate {
-	return au.SetInstructionID(i.ID)
+// AddHeartbeat adds the "heartbeat" edges to the Heartbeat entity.
+func (au *AgentUpdate) AddHeartbeat(h ...*Heartbeat) *AgentUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return au.AddHeartbeatIDs(ids...)
 }
 
 // Mutation returns the AgentMutation object of the builder.
@@ -88,10 +100,46 @@ func (au *AgentUpdate) Mutation() *AgentMutation {
 	return au.mutation
 }
 
-// ClearInstruction clears the "instruction" edge to the Instruction entity.
+// ClearInstruction clears all "instruction" edges to the Instruction entity.
 func (au *AgentUpdate) ClearInstruction() *AgentUpdate {
 	au.mutation.ClearInstruction()
 	return au
+}
+
+// RemoveInstructionIDs removes the "instruction" edge to Instruction entities by IDs.
+func (au *AgentUpdate) RemoveInstructionIDs(ids ...int) *AgentUpdate {
+	au.mutation.RemoveInstructionIDs(ids...)
+	return au
+}
+
+// RemoveInstruction removes "instruction" edges to Instruction entities.
+func (au *AgentUpdate) RemoveInstruction(i ...*Instruction) *AgentUpdate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return au.RemoveInstructionIDs(ids...)
+}
+
+// ClearHeartbeat clears all "heartbeat" edges to the Heartbeat entity.
+func (au *AgentUpdate) ClearHeartbeat() *AgentUpdate {
+	au.mutation.ClearHeartbeat()
+	return au
+}
+
+// RemoveHeartbeatIDs removes the "heartbeat" edge to Heartbeat entities by IDs.
+func (au *AgentUpdate) RemoveHeartbeatIDs(ids ...int) *AgentUpdate {
+	au.mutation.RemoveHeartbeatIDs(ids...)
+	return au
+}
+
+// RemoveHeartbeat removes "heartbeat" edges to Heartbeat entities.
+func (au *AgentUpdate) RemoveHeartbeat(h ...*Heartbeat) *AgentUpdate {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return au.RemoveHeartbeatIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -207,7 +255,7 @@ func (au *AgentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if au.mutation.InstructionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: true,
 			Table:   agent.InstructionTable,
 			Columns: []string{agent.InstructionColumn},
@@ -221,9 +269,9 @@ func (au *AgentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := au.mutation.InstructionIDs(); len(nodes) > 0 {
+	if nodes := au.mutation.RemovedInstructionIDs(); len(nodes) > 0 && !au.mutation.InstructionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: true,
 			Table:   agent.InstructionTable,
 			Columns: []string{agent.InstructionColumn},
@@ -232,6 +280,79 @@ func (au *AgentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: instruction.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.InstructionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.InstructionTable,
+			Columns: []string{agent.InstructionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: instruction.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if au.mutation.HeartbeatCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.RemovedHeartbeatIDs(); len(nodes) > 0 && !au.mutation.HeartbeatCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := au.mutation.HeartbeatIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
 				},
 			},
 		}
@@ -295,23 +416,34 @@ func (auo *AgentUpdateOne) AddPid(i int) *AgentUpdateOne {
 	return auo
 }
 
-// SetInstructionID sets the "instruction" edge to the Instruction entity by ID.
-func (auo *AgentUpdateOne) SetInstructionID(id int) *AgentUpdateOne {
-	auo.mutation.SetInstructionID(id)
+// AddInstructionIDs adds the "instruction" edge to the Instruction entity by IDs.
+func (auo *AgentUpdateOne) AddInstructionIDs(ids ...int) *AgentUpdateOne {
+	auo.mutation.AddInstructionIDs(ids...)
 	return auo
 }
 
-// SetNillableInstructionID sets the "instruction" edge to the Instruction entity by ID if the given value is not nil.
-func (auo *AgentUpdateOne) SetNillableInstructionID(id *int) *AgentUpdateOne {
-	if id != nil {
-		auo = auo.SetInstructionID(*id)
+// AddInstruction adds the "instruction" edges to the Instruction entity.
+func (auo *AgentUpdateOne) AddInstruction(i ...*Instruction) *AgentUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
 	}
+	return auo.AddInstructionIDs(ids...)
+}
+
+// AddHeartbeatIDs adds the "heartbeat" edge to the Heartbeat entity by IDs.
+func (auo *AgentUpdateOne) AddHeartbeatIDs(ids ...int) *AgentUpdateOne {
+	auo.mutation.AddHeartbeatIDs(ids...)
 	return auo
 }
 
-// SetInstruction sets the "instruction" edge to the Instruction entity.
-func (auo *AgentUpdateOne) SetInstruction(i *Instruction) *AgentUpdateOne {
-	return auo.SetInstructionID(i.ID)
+// AddHeartbeat adds the "heartbeat" edges to the Heartbeat entity.
+func (auo *AgentUpdateOne) AddHeartbeat(h ...*Heartbeat) *AgentUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return auo.AddHeartbeatIDs(ids...)
 }
 
 // Mutation returns the AgentMutation object of the builder.
@@ -319,10 +451,46 @@ func (auo *AgentUpdateOne) Mutation() *AgentMutation {
 	return auo.mutation
 }
 
-// ClearInstruction clears the "instruction" edge to the Instruction entity.
+// ClearInstruction clears all "instruction" edges to the Instruction entity.
 func (auo *AgentUpdateOne) ClearInstruction() *AgentUpdateOne {
 	auo.mutation.ClearInstruction()
 	return auo
+}
+
+// RemoveInstructionIDs removes the "instruction" edge to Instruction entities by IDs.
+func (auo *AgentUpdateOne) RemoveInstructionIDs(ids ...int) *AgentUpdateOne {
+	auo.mutation.RemoveInstructionIDs(ids...)
+	return auo
+}
+
+// RemoveInstruction removes "instruction" edges to Instruction entities.
+func (auo *AgentUpdateOne) RemoveInstruction(i ...*Instruction) *AgentUpdateOne {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
+	}
+	return auo.RemoveInstructionIDs(ids...)
+}
+
+// ClearHeartbeat clears all "heartbeat" edges to the Heartbeat entity.
+func (auo *AgentUpdateOne) ClearHeartbeat() *AgentUpdateOne {
+	auo.mutation.ClearHeartbeat()
+	return auo
+}
+
+// RemoveHeartbeatIDs removes the "heartbeat" edge to Heartbeat entities by IDs.
+func (auo *AgentUpdateOne) RemoveHeartbeatIDs(ids ...int) *AgentUpdateOne {
+	auo.mutation.RemoveHeartbeatIDs(ids...)
+	return auo
+}
+
+// RemoveHeartbeat removes "heartbeat" edges to Heartbeat entities.
+func (auo *AgentUpdateOne) RemoveHeartbeat(h ...*Heartbeat) *AgentUpdateOne {
+	ids := make([]int, len(h))
+	for i := range h {
+		ids[i] = h[i].ID
+	}
+	return auo.RemoveHeartbeatIDs(ids...)
 }
 
 // Save executes the query and returns the updated Agent entity.
@@ -443,7 +611,7 @@ func (auo *AgentUpdateOne) sqlSave(ctx context.Context) (_node *Agent, err error
 	}
 	if auo.mutation.InstructionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: true,
 			Table:   agent.InstructionTable,
 			Columns: []string{agent.InstructionColumn},
@@ -457,9 +625,9 @@ func (auo *AgentUpdateOne) sqlSave(ctx context.Context) (_node *Agent, err error
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := auo.mutation.InstructionIDs(); len(nodes) > 0 {
+	if nodes := auo.mutation.RemovedInstructionIDs(); len(nodes) > 0 && !auo.mutation.InstructionCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: true,
 			Table:   agent.InstructionTable,
 			Columns: []string{agent.InstructionColumn},
@@ -468,6 +636,79 @@ func (auo *AgentUpdateOne) sqlSave(ctx context.Context) (_node *Agent, err error
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: instruction.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.InstructionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.InstructionTable,
+			Columns: []string{agent.InstructionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: instruction.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if auo.mutation.HeartbeatCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.RemovedHeartbeatIDs(); len(nodes) > 0 && !auo.mutation.HeartbeatCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := auo.mutation.HeartbeatIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   agent.HeartbeatTable,
+			Columns: []string{agent.HeartbeatColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: heartbeat.FieldID,
 				},
 			},
 		}

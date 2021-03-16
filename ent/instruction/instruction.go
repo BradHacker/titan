@@ -18,7 +18,7 @@ const (
 	// Table holds the table name of the instruction in the database.
 	Table = "instructions"
 	// AgentTable is the table the holds the agent relation/edge.
-	AgentTable = "agents"
+	AgentTable = "instructions"
 	// AgentInverseTable is the table name for the Agent entity.
 	// It exists in this package in order to avoid circular dependency with the "agent" package.
 	AgentInverseTable = "agents"
@@ -50,6 +50,7 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"beacon_instruction",
+	"instruction_agent",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/BradHacker/titan/ent"
-	"github.com/BradHacker/titan/ent/agent"
 	"github.com/BradHacker/titan/models"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -54,39 +53,33 @@ func main() {
 
 func handleConnection(ctx context.Context, client *ent.Client, conn net.Conn) {
 	defer CloseConnection(conn)
-
-	// agent, err := client.Agent.Query()
-
+	
 	heartbeat, err := WaitForBeaconHeartbeat(conn)
 	if err != nil {
-		log.Fatalf("error while waiting for Beacon heartbeat: %v", err)
+		log.Fatalf("error while waiting for Beacon heartbeat: %v\n", err)
 	}
-	agent, err := client.Agent.Query().Where(agent.And(agent.UUIDEQ((*heartbeat).Agent.UUID), agent.HostnameEQ((*heartbeat).Agent.Hostname))).Only(ctx)
+	
+	dbHeartbeat, err := models.CreateHeartbeat(ctx, client, *heartbeat)
 	if err != nil {
-		fmt.Printf("No agent found for %s (%s), creating one...", (*heartbeat).Agent.Hostname, (*heartbeat).Agent.UUID);
-		agent, err = client.Agent.Create().
-			SetUUID((*heartbeat).Agent.UUID).
-			SetHostname((*heartbeat).Agent.Hostname).
-			SetIP((*heartbeat).Agent.IP).
-			SetPort((*heartbeat).Agent.Port).
-			SetPid((*heartbeat).Agent.PID).
-			Save(ctx)
-		if err != nil {
-			log.Fatalf("couldn't create agent in database: %v\n", err)
-		}
+		log.Fatalf("couldn't create heartbeat in database: %v\n", err)
 	}
-	fmt.Printf("Got heartbeat from %s\n", agent.Hostname)
+	fmt.Printf("Got heartbeat (ID: %d) from %s\n", dbHeartbeat.ID, heartbeat.Agent.Hostname)
+	
+	testInstruction := generateTestInstruction()
+	dbInstruction, err := models.CreateInstruction(ctx, client, testInstruction)
+	if err != nil {
+		log.Fatalf("couldn't create instruction in database: %v\n", err)
+	}
+	fmt.Printf("Created instruction with ID %d\n", dbInstruction.ID)
+	err = SendInstruction(ctx, testInstruction, dbInstruction, conn)
+	if err != nil {
+		log.Fatalf("something went wrong while sending instruction: %v\n", err)
+	}
 
-	// testInstruction := generateTestInstruction()
-	// err = SendInstruction(testInstruction, conn)
-	// if err != nil {
-	// 	log.Fatalf("something went wrong while sending instruction: %v\n", err)
-	// }
-
-	// err = WaitForBeaconReturn(conn)
-	// if err != nil {
-	// 	log.Fatalf("error while waiting for Beacon response: %v", err)
-	// }
+	err = WaitForBeaconReturn(conn)
+	if err != nil {
+		log.Fatalf("error while waiting for Beacon response: %v", err)
+	}
 }
 
 func generateTestInstruction() (instruction models.Instruction) {

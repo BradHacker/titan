@@ -39,21 +39,13 @@ var (
 		{Name: "ip", Type: field.TypeString},
 		{Name: "port", Type: field.TypeString},
 		{Name: "pid", Type: field.TypeInt},
-		{Name: "instruction_agent", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// AgentsTable holds the schema information for the "agents" table.
 	AgentsTable = &schema.Table{
-		Name:       "agents",
-		Columns:    AgentsColumns,
-		PrimaryKey: []*schema.Column{AgentsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "agents_instructions_agent",
-				Columns:    []*schema.Column{AgentsColumns[6]},
-				RefColumns: []*schema.Column{InstructionsColumns[0]},
-				OnDelete:   schema.SetNull,
-			},
-		},
+		Name:        "agents",
+		Columns:     AgentsColumns,
+		PrimaryKey:  []*schema.Column{AgentsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{},
 	}
 	// BeaconsColumns holds the columns for the "beacons" table.
 	BeaconsColumns = []*schema.Column{
@@ -68,11 +60,33 @@ var (
 		PrimaryKey:  []*schema.Column{BeaconsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{},
 	}
+	// HeartbeatsColumns holds the columns for the "heartbeats" table.
+	HeartbeatsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "sent_at", Type: field.TypeTime},
+		{Name: "received_at", Type: field.TypeTime},
+		{Name: "heartbeat_agent", Type: field.TypeInt, Nullable: true},
+	}
+	// HeartbeatsTable holds the schema information for the "heartbeats" table.
+	HeartbeatsTable = &schema.Table{
+		Name:       "heartbeats",
+		Columns:    HeartbeatsColumns,
+		PrimaryKey: []*schema.Column{HeartbeatsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "heartbeats_agents_agent",
+				Columns:    []*schema.Column{HeartbeatsColumns[3]},
+				RefColumns: []*schema.Column{AgentsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// InstructionsColumns holds the columns for the "instructions" table.
 	InstructionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "sent_at", Type: field.TypeTime},
 		{Name: "beacon_instruction", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "instruction_agent", Type: field.TypeInt, Nullable: true},
 	}
 	// InstructionsTable holds the schema information for the "instructions" table.
 	InstructionsTable = &schema.Table{
@@ -86,6 +100,12 @@ var (
 				RefColumns: []*schema.Column{BeaconsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
+			{
+				Symbol:     "instructions_agents_agent",
+				Columns:    []*schema.Column{InstructionsColumns[3]},
+				RefColumns: []*schema.Column{AgentsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 		},
 	}
 	// Tables holds all the tables in the schema.
@@ -93,12 +113,14 @@ var (
 		ActionsTable,
 		AgentsTable,
 		BeaconsTable,
+		HeartbeatsTable,
 		InstructionsTable,
 	}
 )
 
 func init() {
 	ActionsTable.ForeignKeys[0].RefTable = InstructionsTable
-	AgentsTable.ForeignKeys[0].RefTable = InstructionsTable
+	HeartbeatsTable.ForeignKeys[0].RefTable = AgentsTable
 	InstructionsTable.ForeignKeys[0].RefTable = BeaconsTable
+	InstructionsTable.ForeignKeys[1].RefTable = AgentsTable
 }

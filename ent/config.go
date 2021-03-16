@@ -27,6 +27,7 @@ type hooks struct {
 	Action      []ent.Hook
 	Agent       []ent.Hook
 	Beacon      []ent.Hook
+	Heartbeat   []ent.Hook
 	Instruction []ent.Hook
 }
 

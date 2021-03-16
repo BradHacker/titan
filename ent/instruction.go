@@ -25,6 +25,7 @@ type Instruction struct {
 	// The values are being populated by the InstructionQuery when eager-loading is set.
 	Edges              InstructionEdges `json:"edges"`
 	beacon_instruction *int
+	instruction_agent  *int
 }
 
 // InstructionEdges holds the relations/edges for other nodes in the graph.
@@ -93,6 +94,8 @@ func (*Instruction) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = &sql.NullTime{}
 		case instruction.ForeignKeys[0]: // beacon_instruction
 			values[i] = &sql.NullInt64{}
+		case instruction.ForeignKeys[1]: // instruction_agent
+			values[i] = &sql.NullInt64{}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Instruction", columns[i])
 		}
@@ -126,6 +129,13 @@ func (i *Instruction) assignValues(columns []string, values []interface{}) error
 			} else if value.Valid {
 				i.beacon_instruction = new(int)
 				*i.beacon_instruction = int(value.Int64)
+			}
+		case instruction.ForeignKeys[1]:
+			if value, ok := values[j].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field instruction_agent", value)
+			} else if value.Valid {
+				i.instruction_agent = new(int)
+				*i.instruction_agent = int(value.Int64)
 			}
 		}
 	}

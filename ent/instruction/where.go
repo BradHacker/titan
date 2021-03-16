@@ -182,7 +182,7 @@ func HasAgent() predicate.Instruction {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AgentTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, AgentTable, AgentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, AgentTable, AgentColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -194,7 +194,7 @@ func HasAgentWith(preds ...predicate.Agent) predicate.Instruction {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(AgentInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, AgentTable, AgentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, AgentTable, AgentColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

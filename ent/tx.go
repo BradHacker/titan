@@ -18,6 +18,8 @@ type Tx struct {
 	Agent *AgentClient
 	// Beacon is the client for interacting with the Beacon builders.
 	Beacon *BeaconClient
+	// Heartbeat is the client for interacting with the Heartbeat builders.
+	Heartbeat *HeartbeatClient
 	// Instruction is the client for interacting with the Instruction builders.
 	Instruction *InstructionClient
 
@@ -158,6 +160,7 @@ func (tx *Tx) init() {
 	tx.Action = NewActionClient(tx.config)
 	tx.Agent = NewAgentClient(tx.config)
 	tx.Beacon = NewBeaconClient(tx.config)
+	tx.Heartbeat = NewHeartbeatClient(tx.config)
 	tx.Instruction = NewInstructionClient(tx.config)
 }
 

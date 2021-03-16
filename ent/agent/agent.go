@@ -19,15 +19,24 @@ const (
 	FieldPid = "pid"
 	// EdgeInstruction holds the string denoting the instruction edge name in mutations.
 	EdgeInstruction = "instruction"
+	// EdgeHeartbeat holds the string denoting the heartbeat edge name in mutations.
+	EdgeHeartbeat = "heartbeat"
 	// Table holds the table name of the agent in the database.
 	Table = "agents"
 	// InstructionTable is the table the holds the instruction relation/edge.
-	InstructionTable = "agents"
+	InstructionTable = "instructions"
 	// InstructionInverseTable is the table name for the Instruction entity.
 	// It exists in this package in order to avoid circular dependency with the "instruction" package.
 	InstructionInverseTable = "instructions"
 	// InstructionColumn is the table column denoting the instruction relation/edge.
 	InstructionColumn = "instruction_agent"
+	// HeartbeatTable is the table the holds the heartbeat relation/edge.
+	HeartbeatTable = "heartbeats"
+	// HeartbeatInverseTable is the table name for the Heartbeat entity.
+	// It exists in this package in order to avoid circular dependency with the "heartbeat" package.
+	HeartbeatInverseTable = "heartbeats"
+	// HeartbeatColumn is the table column denoting the heartbeat relation/edge.
+	HeartbeatColumn = "heartbeat_agent"
 )
 
 // Columns holds all SQL columns for agent fields.
@@ -40,21 +49,10 @@ var Columns = []string{
 	FieldPid,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "agents"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"instruction_agent",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}

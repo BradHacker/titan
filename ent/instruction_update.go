@@ -196,7 +196,7 @@ func (iu *InstructionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if iu.mutation.AgentCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
 			Table:   instruction.AgentTable,
 			Columns: []string{instruction.AgentColumn},
@@ -212,7 +212,7 @@ func (iu *InstructionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := iu.mutation.AgentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
 			Table:   instruction.AgentTable,
 			Columns: []string{instruction.AgentColumn},
@@ -487,7 +487,7 @@ func (iuo *InstructionUpdateOne) sqlSave(ctx context.Context) (_node *Instructio
 	}
 	if iuo.mutation.AgentCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
 			Table:   instruction.AgentTable,
 			Columns: []string{instruction.AgentColumn},
@@ -503,7 +503,7 @@ func (iuo *InstructionUpdateOne) sqlSave(ctx context.Context) (_node *Instructio
 	}
 	if nodes := iuo.mutation.AgentIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2O,
 			Inverse: false,
 			Table:   instruction.AgentTable,
 			Columns: []string{instruction.AgentColumn},

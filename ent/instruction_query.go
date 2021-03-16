@@ -75,7 +75,7 @@ func (iq *InstructionQuery) QueryAgent() *AgentQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(instruction.Table, instruction.FieldID, selector),
 			sqlgraph.To(agent.Table, agent.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, instruction.AgentTable, instruction.AgentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, instruction.AgentTable, instruction.AgentColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
 		return fromU, nil
@@ -422,7 +422,7 @@ func (iq *InstructionQuery) sqlAll(ctx context.Context) ([]*Instruction, error) 
 			iq.withBeacon != nil,
 		}
 	)
-	if iq.withBeacon != nil {
+	if iq.withAgent != nil || iq.withBeacon != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -449,30 +449,28 @@ func (iq *InstructionQuery) sqlAll(ctx context.Context) ([]*Instruction, error) 
 	}
 
 	if query := iq.withAgent; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[int]*Instruction)
+		ids := make([]int, 0, len(nodes))
+		nodeids := make(map[int][]*Instruction)
 		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
+			fk := nodes[i].instruction_agent
+			if fk != nil {
+				ids = append(ids, *fk)
+				nodeids[*fk] = append(nodeids[*fk], nodes[i])
+			}
 		}
-		query.withFKs = true
-		query.Where(predicate.Agent(func(s *sql.Selector) {
-			s.Where(sql.InValues(instruction.AgentColumn, fks...))
-		}))
+		query.Where(agent.IDIn(ids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.instruction_agent
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "instruction_agent" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			nodes, ok := nodeids[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "instruction_agent" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "instruction_agent" returned %v`, n.ID)
 			}
-			node.Edges.Agent = n
+			for i := range nodes {
+				nodes[i].Edges.Agent = n
+			}
 		}
 	}
 

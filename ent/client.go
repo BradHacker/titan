@@ -12,6 +12,7 @@ import (
 	"github.com/BradHacker/titan/ent/action"
 	"github.com/BradHacker/titan/ent/agent"
 	"github.com/BradHacker/titan/ent/beacon"
+	"github.com/BradHacker/titan/ent/heartbeat"
 	"github.com/BradHacker/titan/ent/instruction"
 
 	"entgo.io/ent/dialect"
@@ -30,6 +31,8 @@ type Client struct {
 	Agent *AgentClient
 	// Beacon is the client for interacting with the Beacon builders.
 	Beacon *BeaconClient
+	// Heartbeat is the client for interacting with the Heartbeat builders.
+	Heartbeat *HeartbeatClient
 	// Instruction is the client for interacting with the Instruction builders.
 	Instruction *InstructionClient
 }
@@ -48,6 +51,7 @@ func (c *Client) init() {
 	c.Action = NewActionClient(c.config)
 	c.Agent = NewAgentClient(c.config)
 	c.Beacon = NewBeaconClient(c.config)
+	c.Heartbeat = NewHeartbeatClient(c.config)
 	c.Instruction = NewInstructionClient(c.config)
 }
 
@@ -85,6 +89,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Action:      NewActionClient(cfg),
 		Agent:       NewAgentClient(cfg),
 		Beacon:      NewBeaconClient(cfg),
+		Heartbeat:   NewHeartbeatClient(cfg),
 		Instruction: NewInstructionClient(cfg),
 	}, nil
 }
@@ -107,6 +112,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Action:      NewActionClient(cfg),
 		Agent:       NewAgentClient(cfg),
 		Beacon:      NewBeaconClient(cfg),
+		Heartbeat:   NewHeartbeatClient(cfg),
 		Instruction: NewInstructionClient(cfg),
 	}, nil
 }
@@ -140,6 +146,7 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Action.Use(hooks...)
 	c.Agent.Use(hooks...)
 	c.Beacon.Use(hooks...)
+	c.Heartbeat.Use(hooks...)
 	c.Instruction.Use(hooks...)
 }
 
@@ -338,7 +345,23 @@ func (c *AgentClient) QueryInstruction(a *Agent) *InstructionQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(agent.Table, agent.FieldID, id),
 			sqlgraph.To(instruction.Table, instruction.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, agent.InstructionTable, agent.InstructionColumn),
+			sqlgraph.Edge(sqlgraph.O2M, true, agent.InstructionTable, agent.InstructionColumn),
+		)
+		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryHeartbeat queries the heartbeat edge of a Agent.
+func (c *AgentClient) QueryHeartbeat(a *Agent) *HeartbeatQuery {
+	query := &HeartbeatQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := a.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(agent.Table, agent.FieldID, id),
+			sqlgraph.To(heartbeat.Table, heartbeat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, agent.HeartbeatTable, agent.HeartbeatColumn),
 		)
 		fromV = sqlgraph.Neighbors(a.driver.Dialect(), step)
 		return fromV, nil
@@ -455,6 +478,110 @@ func (c *BeaconClient) Hooks() []Hook {
 	return c.hooks.Beacon
 }
 
+// HeartbeatClient is a client for the Heartbeat schema.
+type HeartbeatClient struct {
+	config
+}
+
+// NewHeartbeatClient returns a client for the Heartbeat from the given config.
+func NewHeartbeatClient(c config) *HeartbeatClient {
+	return &HeartbeatClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `heartbeat.Hooks(f(g(h())))`.
+func (c *HeartbeatClient) Use(hooks ...Hook) {
+	c.hooks.Heartbeat = append(c.hooks.Heartbeat, hooks...)
+}
+
+// Create returns a create builder for Heartbeat.
+func (c *HeartbeatClient) Create() *HeartbeatCreate {
+	mutation := newHeartbeatMutation(c.config, OpCreate)
+	return &HeartbeatCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Heartbeat entities.
+func (c *HeartbeatClient) CreateBulk(builders ...*HeartbeatCreate) *HeartbeatCreateBulk {
+	return &HeartbeatCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Heartbeat.
+func (c *HeartbeatClient) Update() *HeartbeatUpdate {
+	mutation := newHeartbeatMutation(c.config, OpUpdate)
+	return &HeartbeatUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *HeartbeatClient) UpdateOne(h *Heartbeat) *HeartbeatUpdateOne {
+	mutation := newHeartbeatMutation(c.config, OpUpdateOne, withHeartbeat(h))
+	return &HeartbeatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *HeartbeatClient) UpdateOneID(id int) *HeartbeatUpdateOne {
+	mutation := newHeartbeatMutation(c.config, OpUpdateOne, withHeartbeatID(id))
+	return &HeartbeatUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Heartbeat.
+func (c *HeartbeatClient) Delete() *HeartbeatDelete {
+	mutation := newHeartbeatMutation(c.config, OpDelete)
+	return &HeartbeatDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *HeartbeatClient) DeleteOne(h *Heartbeat) *HeartbeatDeleteOne {
+	return c.DeleteOneID(h.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *HeartbeatClient) DeleteOneID(id int) *HeartbeatDeleteOne {
+	builder := c.Delete().Where(heartbeat.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &HeartbeatDeleteOne{builder}
+}
+
+// Query returns a query builder for Heartbeat.
+func (c *HeartbeatClient) Query() *HeartbeatQuery {
+	return &HeartbeatQuery{config: c.config}
+}
+
+// Get returns a Heartbeat entity by its id.
+func (c *HeartbeatClient) Get(ctx context.Context, id int) (*Heartbeat, error) {
+	return c.Query().Where(heartbeat.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *HeartbeatClient) GetX(ctx context.Context, id int) *Heartbeat {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAgent queries the agent edge of a Heartbeat.
+func (c *HeartbeatClient) QueryAgent(h *Heartbeat) *AgentQuery {
+	query := &AgentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := h.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(heartbeat.Table, heartbeat.FieldID, id),
+			sqlgraph.To(agent.Table, agent.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, heartbeat.AgentTable, heartbeat.AgentColumn),
+		)
+		fromV = sqlgraph.Neighbors(h.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *HeartbeatClient) Hooks() []Hook {
+	return c.hooks.Heartbeat
+}
+
 // InstructionClient is a client for the Instruction schema.
 type InstructionClient struct {
 	config
@@ -546,7 +673,7 @@ func (c *InstructionClient) QueryAgent(i *Instruction) *AgentQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(instruction.Table, instruction.FieldID, id),
 			sqlgraph.To(agent.Table, agent.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, instruction.AgentTable, instruction.AgentColumn),
+			sqlgraph.Edge(sqlgraph.M2O, false, instruction.AgentTable, instruction.AgentColumn),
 		)
 		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
 		return fromV, nil
