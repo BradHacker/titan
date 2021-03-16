@@ -3,6 +3,11 @@ package main
 import (
 	"net"
 	"os"
+	"strings"
+	"time"
+
+	"github.com/BradHacker/titan/models"
+	"github.com/denisbrodbeck/machineid"
 )
 
 // GetProcessID returns the current PID of the Beacon
@@ -25,4 +30,29 @@ func GetMACAddrs() ([]string, error) {
 			}
 	}
 	return as, nil
+}
+
+func GenerateHeartbeat(connection net.Conn) (heartbeat models.Heartbeat) {
+	var agent models.Agent
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	} else {
+		agent.Hostname = hostname
+	}
+	localAaddressParts := strings.Split(connection.LocalAddr().String(), ":")
+	agent.IP = localAaddressParts[0]
+	agent.PID = GetProcessID()
+	agent.Port = localAaddressParts[1]
+	macId, err := machineid.ID();
+	if err != nil {
+		agent.UUID = "unknown"
+	} else {
+		agent.UUID = macId
+	}
+
+	heartbeat.SentAt = time.Now()
+	heartbeat.Agent = agent
+	return
 }

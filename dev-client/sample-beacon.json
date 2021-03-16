@@ -1,16 +1,4 @@
 {
-  "agent": {
-    "uuid": "test-uuid",
-    "hostname": "Target-Laptop1",
-    "ip": "111.111.111.111",
-    "port": "1337",
-    "pid": "0"
-  },
-  "action": {
-    "actionType": "EXEC",
-    "cmd": "whoami",
-    "output": "bob"
-  },
   "sentAt": "2021-01-01 15:04:05.999999999 -0700 MST",
   "receivedAt": "",
   "instruction": {
@@ -25,6 +13,7 @@
     "action": {
       "actionType": "EXEC",
       "cmd": "whoami",
+      "args": [],
       "output": "bob"
     }
   }

