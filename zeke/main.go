@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	"github.com/BradHacker/titan/models"
 )
@@ -52,8 +53,13 @@ func generateTestInstruction() (instruction models.Instruction) {
 	var testAction models.Action
 
 	testAction.ActionType = "EXEC"
-	testAction.Cmd = "echo"
-	testAction.Args = []string{"-n", "RCE is working"}
+	input := ""
+	fmt.Println("Enter command to run:")
+	fmt.Scanln(&input)
+	parts := strings.Split(input, " ")
+	fmt.Println(parts)
+	testAction.Cmd = parts[0]
+	testAction.Args = parts[1:]
 
 	instruction.Action = testAction
 	return
